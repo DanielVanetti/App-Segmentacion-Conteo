@@ -1,0 +1,35 @@
+# Copas UAV — prototipo de interfaz
+
+Interfaz web para la **segmentación por instancia y el conteo de copas individuales de árboles**
+en imágenes de vehículo aéreo no tripulado del bosque tropical seco de la Región Chorotega, Costa
+Rica. Trabajo Final de Graduación G51, Licenciatura en Informática, Universidad Nacional.
+
+> **El modelo de aprendizaje profundo todavía no existe.** Este repositorio construye únicamente
+> la capa de presentación, operando contra una API simulada con MSW. La interfaz lo advierte de
+> forma permanente y visible.
+
+## Requisitos
+
+Node 20 o superior. Probado con Node 22.
+
+## Ejecución
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+```
+
+## Verificaciones
+
+```bash
+npm run typecheck && npm run lint && npm run test
+npm run build
+```
+
+## Documentos
+
+- `CLAUDE.md` — contexto, reglas y convenciones. Manda sobre todo lo demás.
+- `PLAN.md` — plan de construcción por fases. Una fase a la vez.
+
+La documentación completa de ejecución, y la sección que distingue qué es simulado y qué sería
+real para el anexo del informe, corresponden a la Fase 9.

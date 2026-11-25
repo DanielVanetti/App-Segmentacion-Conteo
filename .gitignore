@@ -1,0 +1,33 @@
+# --- General ---
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.log
+
+# --- Variables de entorno (se versiona solo el .env.example) ---
+.env
+.env.*
+!.env.example
+
+# --- Backend (Python) ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/trabajos/*
+!backend/trabajos/.gitkeep
+backend/respaldo_antes_gsd/
+
+# Datos pesados: ortomosaicos y datasets generados no van al repo
+*.tif
+*.tiff
+dataset*/
+
+# --- Frontend (Node) ---
+node_modules/
+dist/
+dist-ssr/
+coverage/
