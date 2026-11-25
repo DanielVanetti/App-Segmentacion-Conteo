@@ -20,6 +20,7 @@ __pycache__/
 backend/trabajos/*
 !backend/trabajos/.gitkeep
 backend/respaldo_antes_gsd/
+backend/datos/
 
 # Datos pesados: ortomosaicos y datasets generados no van al repo
 *.tif

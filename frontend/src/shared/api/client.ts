@@ -43,10 +43,12 @@ export async function request<T>(
   try {
     respuesta = await fetch(url, {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...init?.headers,
-      },
+      // Con FormData (subida de archivos) el navegador pone el Content-Type
+      // con su boundary; forzar JSON romperia la subida.
+      headers:
+        init?.body instanceof FormData
+          ? init?.headers
+          : { "Content-Type": "application/json", ...init?.headers },
     });
   } catch (causa) {
     // Fallo de red: el servidor no respondio del todo.

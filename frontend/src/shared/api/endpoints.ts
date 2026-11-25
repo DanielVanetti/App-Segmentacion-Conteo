@@ -45,21 +45,20 @@ export function obtenerOrtomosaico(proyectoId: string): Promise<Ortomosaico> {
 }
 
 /**
- * Registra el ortomosaico y devuelve el resultado de la validacion de formato,
- * CRS y resolucion. La subida binaria real es responsabilidad del back end.
+ * Sube el GeoTIFF (multipart). El back end valida formato, CRS, bandas y
+ * resolucion: si es invalido responde 422 con el motivo y no lo guarda; si solo
+ * hay advertencias, vienen en `validacion`. Subir otro reemplaza al anterior.
  */
-export function registrarOrtomosaico(
+export function subirOrtomosaico(
   proyectoId: string,
-  metadatos: Pick<
-    Ortomosaico,
-    "nombreArchivo" | "tamanoBytes" | "formato" | "crs" | "resolucionCmPorPixel"
-  >,
+  archivo: File,
 ): Promise<Ortomosaico> {
-  return requestConCuerpo<Ortomosaico>(
-    "POST",
-    `/proyectos/${proyectoId}/ortomosaico`,
-    metadatos,
-  );
+  const cuerpo = new FormData();
+  cuerpo.append("archivo", archivo);
+  return request<Ortomosaico>(`/proyectos/${proyectoId}/ortomosaico`, {
+    method: "POST",
+    body: cuerpo,
+  });
 }
 
 /* ------------------------------------------------------------------ */

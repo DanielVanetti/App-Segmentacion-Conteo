@@ -1,0 +1,25 @@
+# Servicios de apoyo para desarrollo local.
+#   docker compose up -d db        -> PostgreSQL 17 + PostGIS en localhost:5434
+#
+# Las credenciales son SOLO para desarrollo local (la base no se expone fuera del equipo).
+# Puerto 5434: el 5432 suele ser un PostgreSQL de Windows y el 5433 otros proyectos.
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: copas-db
+    environment:
+      POSTGRES_USER: copas
+      POSTGRES_PASSWORD: copas_local
+      POSTGRES_DB: copas
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - copas-db:/var/lib/postgresql/data
+      - ./backend/bd/iniciar:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copas -d copas"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  copas-db:

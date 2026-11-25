@@ -21,4 +21,5 @@ def salud(contenedor: Contenedor = Depends(obtener_contenedor)):
         clases_contadas=getattr(servicio.segmentador, "clases_activas",
                                 list(servicio.segmentador.nombres_clases.values())),
         gsd_objetivo=cfg.gsd_objetivo,
+        persistencia=contenedor.persistencia,
     )

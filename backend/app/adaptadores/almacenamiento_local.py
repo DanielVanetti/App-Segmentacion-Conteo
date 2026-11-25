@@ -9,6 +9,18 @@ from app.dominio.puertos import ArchivoSubido
 TAM_PARTE = 1024 * 1024  # 1 MB
 
 
+async def copiar_por_partes(archivo: ArchivoSubido, ruta: Path, max_bytes: int) -> None:
+    """Escribe la subida en disco por partes (no se carga entera en memoria)."""
+    total = 0
+    with open(ruta, "wb") as f:
+        while parte := await archivo.read(TAM_PARTE):
+            total += len(parte)
+            if total > max_bytes:
+                raise ArchivoDemasiadoGrande(
+                    f"El archivo supera el máximo de {max_bytes // (1024 * 1024)} MB")
+            f.write(parte)
+
+
 class AlmacenamientoLocal:
     def __init__(self, directorio: Path):
         self._dir = Path(directorio)
@@ -23,15 +35,8 @@ class AlmacenamientoLocal:
         carpeta = self._carpeta(id_trabajo)
         carpeta.mkdir(parents=True)
         ruta = carpeta / f"entrada{extension}"
-        total = 0
         try:
-            with open(ruta, "wb") as f:
-                while parte := await archivo.read(TAM_PARTE):
-                    total += len(parte)
-                    if total > max_bytes:
-                        raise ArchivoDemasiadoGrande(
-                            f"El archivo supera el máximo de {max_bytes // (1024 * 1024)} MB")
-                    f.write(parte)
+            await copiar_por_partes(archivo, ruta, max_bytes)
         except Exception:
             self.eliminar(id_trabajo)
             raise

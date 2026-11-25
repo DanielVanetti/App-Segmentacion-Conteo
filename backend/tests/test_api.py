@@ -12,6 +12,8 @@ from tests.conftest import SegmentadorFalso, crear_geotiff
 @pytest.fixture
 def cliente(tmp_path, monkeypatch):
     monkeypatch.setenv("DIR_TRABAJOS", str(tmp_path / "trabajos"))
+    monkeypatch.setenv("DIR_DATOS", str(tmp_path / "datos"))
+    monkeypatch.delenv("DATABASE_URL", raising=False)
     app = crear_app(lambda cfg: construir(cfg, segmentador=SegmentadorFalso()))
     with TestClient(app) as c:
         yield c
@@ -56,7 +58,7 @@ def test_png_responde_415(cliente, tmp_path):
     ruta.write_bytes(b"\x89PNG")
     r = _subir(cliente, ruta)
     assert r.status_code == 415
-    assert "aún no está disponible" in r.json()["detail"]
+    assert "aún no está disponible" in r.json()["mensaje"]
 
 
 def test_txt_responde_400(cliente, tmp_path):

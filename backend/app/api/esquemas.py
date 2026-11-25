@@ -52,3 +52,4 @@ class SaludSalida(BaseModel):
     formatos: list[str]
     clases_contadas: list[str] = []   # clases que se detectan y cuentan (las demás se ignoran)
     gsd_objetivo: float = 0.0         # m/px a la que se reescala el ortomosaico (0 = no reescala)
+    persistencia: str = "memoria"     # "postgis" o "memoria" (proyectos)

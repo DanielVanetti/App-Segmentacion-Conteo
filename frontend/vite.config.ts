@@ -11,4 +11,11 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
+  // Con VITE_USE_MOCKS=false las peticiones a /api van al back end (FastAPI).
+  // Con MSW activo, MSW las intercepta antes de llegar aqui.
+  server: {
+    proxy: {
+      "/api": process.env.VITE_PROXY_API ?? "http://127.0.0.1:8000",
+    },
+  },
 })

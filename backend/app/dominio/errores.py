@@ -31,3 +31,15 @@ class TrabajoNoTerminado(ErrorDominio):
 
 class TrabajoFallido(ErrorDominio):
     """El trabajo terminó con error (HTTP 500)."""
+
+
+class DatosNoValidos(ErrorDominio):
+    """Datos enviados por el usuario que no cumplen las reglas (HTTP 422)."""
+
+
+class ProyectoNoEncontrado(ErrorDominio):
+    """No existe un proyecto con ese id (HTTP 404)."""
+
+
+class OrtomosaicoNoEncontrado(ErrorDominio):
+    """El proyecto todavía no tiene un ortomosaico cargado (HTTP 404)."""

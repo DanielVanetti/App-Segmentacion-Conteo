@@ -25,6 +25,14 @@ class Config:
     gsd_objetivo: float = 0.0
     # Clases del modelo que se detectan y cuentan. Vacío = todas. 'grupo' se ignora.
     clases: tuple[str, ...] = ()
+    # --- Proyectos (RF-01 a RF-04)
+    # postgresql+psycopg://usuario:clave@host:puerto/bd. None = proyectos en memoria
+    # (se pierden al reiniciar; solo para pruebas).
+    database_url: str | None = None
+    dir_datos: Path = RAIZ / "datos"   # ortomosaicos de cada proyecto
+    # Rango de resolución (m/px) en que el modelo se usa sin advertencia (RF-04).
+    gsd_min: float = 0.01
+    gsd_max: float = 0.075
 
     @classmethod
     def desde_entorno(cls) -> "Config":
@@ -41,9 +49,15 @@ class Config:
             trabajadores=int(os.getenv("TRABAJADORES", 1)),
             gsd_objetivo=float(os.getenv("GSD_OBJETIVO", 0.05)),
             clases=tuple(c.strip() for c in os.getenv("CLASES", "arbol").split(",") if c.strip()),
+            database_url=os.getenv("DATABASE_URL") or None,
+            dir_datos=Path(os.getenv("DIR_DATOS", RAIZ / "datos")),
+            gsd_min=float(os.getenv("GSD_MIN", 0.01)),
+            gsd_max=float(os.getenv("GSD_MAX", 0.075)),
         )
         if not 0 <= cfg.traslape < cfg.tesela:
             raise ValueError("TRASLAPE debe ser mayor o igual a 0 y menor que TESELA")
         if cfg.gsd_objetivo < 0:
             raise ValueError("GSD_OBJETIVO no puede ser negativo (0 = no reescalar)")
+        if not 0 < cfg.gsd_min < cfg.gsd_max:
+            raise ValueError("GSD_MIN debe ser mayor que 0 y menor que GSD_MAX")
         return cfg

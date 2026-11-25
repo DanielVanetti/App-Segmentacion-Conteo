@@ -10,7 +10,8 @@ from typing import Callable, Protocol
 
 import numpy as np
 
-from app.dominio.modelos import Copa, Deteccion, InfoImagen, Resumen, Trabajo
+from app.dominio.modelos import (Copa, Deteccion, InfoImagen, MetadatosRaster, Ortomosaico,
+                                 Proyecto, Resumen, Trabajo)
 
 
 class LectorImagen(Protocol):
@@ -78,3 +79,43 @@ class Ejecutor(Protocol):
     def enviar(self, funcion: Callable, *args) -> None: ...
 
     def cerrar(self) -> None: ...
+
+
+class RepositorioProyectos(Protocol):
+    """Proyectos y sus ortomosaicos (RF-01, RF-02). Un ortomosaico por proyecto:
+    cargar uno nuevo reemplaza al anterior."""
+
+    def crear(self, proyecto: Proyecto) -> None: ...
+
+    def listar(self) -> list[Proyecto]: ...
+
+    def obtener(self, id_proyecto: str) -> Proyecto | None: ...
+
+    def eliminar(self, id_proyecto: str) -> bool:
+        """True si existía. Borra también su ortomosaico (en cascada)."""
+        ...
+
+    def guardar_ortomosaico(self, ortomosaico: Ortomosaico) -> None: ...
+
+    def obtener_ortomosaico(self, id_proyecto: str) -> Ortomosaico | None: ...
+
+
+class InspectorRaster(Protocol):
+    def __call__(self, ruta: Path) -> MetadatosRaster:
+        """Lee los metadatos sin leer los píxeles. Lanza ImagenInvalida si no se puede abrir."""
+        ...
+
+
+class ArchivosProyecto(Protocol):
+    """Archivos grandes de cada proyecto (ortomosaico). Fuera de la base de datos."""
+
+    async def guardar_temporal(self, archivo: ArchivoSubido, extension: str,
+                               max_bytes: int) -> Path: ...
+
+    def confirmar(self, id_proyecto: str, temporal: Path) -> Path:
+        """Mueve el temporal a la carpeta del proyecto, reemplazando el anterior."""
+        ...
+
+    def descartar(self, temporal: Path) -> None: ...
+
+    def eliminar_proyecto(self, id_proyecto: str) -> None: ...

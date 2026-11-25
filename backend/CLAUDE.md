@@ -42,12 +42,22 @@ Jose Alejandro Chaves, Daniel González y Josué Solórzano. Explicaciones en es
 - **Clases:** `CLASES` (por defecto `arbol`) filtra en `predict(classes=...)`. El modelo de Santa Cruz (`fold1`, YOLOv8n-seg, 2 clases) tiene `0: arbol` y `1: grupo`; `grupo` se ignora y no cuenta. Con un modelo cuya clase no coincide (p. ej. `tree`) no se filtra y se avisa.
 - Incluye `requirements.txt` y `Dockerfile` (torch CPU).
 
+### Proyectos y persistencia (RF-01 a RF-04)
+- Prefijo `/api` (lo usa el frontend). Contrato del front en `frontend/src/shared/api/types.ts`: JSON en **camelCase**; errores `{"mensaje", "detalle"}` en español.
+- PostgreSQL 17 + PostGIS en Docker (`docker compose up -d db`, puerto **5434**; el 5433 lo usa otro proyecto del equipo). URL en `backend/.env` (`DATABASE_URL`, con `127.0.0.1`, no `localhost`).
+- Esquema con **Alembic** (`migraciones/versions/`). Tablas nuevas = migración nueva; no editar la 0001.
+- Puerto `RepositorioProyectos` con dos adaptadores: `bd/repositorio_proyectos_postgis.py` y `repositorio_proyectos_memoria.py` (pruebas, o si falta `DATABASE_URL`; `/salud` dice cuál se usa).
+- Un ortomosaico por proyecto; cargar otro lo reemplaza. La subida va a `datos/temporales/`, se valida y solo entonces pasa a `datos/proyectos/<id>/`: un archivo inválido no borra el anterior.
+- Validación (`servicios/validacion_ortomosaico.py`): sin CRS o con menos de 3 bandas se rechaza (422). Resolución fuera de `GSD_MIN`–`GSD_MAX` o CRS distinto de EPSG:5367 se acepta con advertencia.
+- La huella se guarda en el CRS de origen con su SRID (DD-04) y la envolvente en EPSG:5367 aparte para el visor.
+- Pruebas de PostGIS: `tests/test_repositorio_postgis.py`, solo con `DATABASE_URL_PRUEBAS` (base `copas_pruebas`, que se vacía).
+
 ## Próximos pasos (en orden)
 1. Obtener `best.pt` y probar la API de punta a punta con `parcela_32.tif`.
 2. Confirmar que `parcela_32.tif` es GeoTIFF; si está en EPSG:4326, reproyectar a CRTM05 (EPSG:5367) para medir áreas.
 3. Mejorar el modelo: anotar **300–500 copas o más** de varias zonas; teselas de 640–1024 px con traslape del 15–20%; aumentos para imagen aérea (`flipud=0.5`, `degrees=90`); `epochs=150`, `patience=50`; probar `yolov8s-seg.pt`.
 4. Separar entrenamiento y validación **por zonas geográficas**, no al azar, para no inflar las métricas.
-5. Pasar el estado de trabajos a PostgreSQL/PostGIS y, si hay carga, a una cola (Celery o RQ).
+5. Ligar los trabajos a proyectos (`/api/proyectos/{id}/trabajos`) y pasar su estado a PostgreSQL. Según DD-01 y DD-02 del informe, el procesamiento corre en un servicio aparte que lee una tabla de ejecuciones (no Celery/Redis), y así es posible cancelar.
 
 ## Reglas para trabajar en este proyecto
 - `TESELA` e `IMGSZ` en la API deben coincidir con los usados al entrenar.
