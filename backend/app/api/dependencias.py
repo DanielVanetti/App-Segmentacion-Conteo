@@ -3,6 +3,7 @@
 from fastapi import Request
 
 from app.contenedor import Contenedor
+from app.servicios.servicio_ejecuciones import ServicioEjecuciones
 from app.servicios.servicio_proyectos import ServicioProyectos
 from app.servicios.servicio_trabajos import ServicioTrabajos
 
@@ -17,3 +18,7 @@ def obtener_servicio(request: Request) -> ServicioTrabajos:
 
 def obtener_proyectos(request: Request) -> ServicioProyectos:
     return request.app.state.contenedor.proyectos
+
+
+def obtener_ejecuciones(request: Request) -> ServicioEjecuciones:
+    return request.app.state.contenedor.ejecuciones

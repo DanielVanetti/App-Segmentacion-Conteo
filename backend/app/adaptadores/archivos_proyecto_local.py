@@ -2,6 +2,7 @@
 Archivos de los proyectos en disco local (RNF-13, RNF-15):
 
     <dir_datos>/proyectos/<id_proyecto>/ortomosaico.tif
+    <dir_datos>/proyectos/<id_proyecto>/ejecuciones/<id_ejecucion>.geojson
     <dir_datos>/temporales/<uuid>.tif      (mientras se valida la subida)
 
 La subida se escribe primero en `temporales/` y solo se mueve al proyecto si es válida,
@@ -48,3 +49,8 @@ class ArchivosProyectoLocal:
 
     def eliminar_proyecto(self, id_proyecto: str) -> None:
         shutil.rmtree(self._proyectos / id_proyecto, ignore_errors=True)
+
+    def ruta_resultado(self, id_proyecto: str, id_ejecucion: str) -> Path:
+        carpeta = self._proyectos / id_proyecto / "ejecuciones"
+        carpeta.mkdir(parents=True, exist_ok=True)
+        return carpeta / f"{id_ejecucion}.geojson"

@@ -133,3 +133,55 @@ class Proyecto:
     actualizado_en: str = field(default_factory=ahora)
     # Se completa al leer; no se guarda en la tabla de proyectos.
     ortomosaico_id: str | None = None
+
+
+# --- Ejecuciones de detección (RF-06 a RF-12; DD-01, DD-02) -----------------------
+
+class EstadoEjecucion(str, Enum):
+    EN_COLA = "en_cola"
+    EJECUTANDO = "ejecutando"
+    COMPLETADO = "completado"
+    FALLIDO = "fallido"
+    CANCELADO = "cancelado"
+
+    @property
+    def activa(self) -> bool:
+        return self in (EstadoEjecucion.EN_COLA, EstadoEjecucion.EJECUTANDO)
+
+
+@dataclass(frozen=True)
+class ParametrosEjecucion:
+    tamano_mosaico_px: int = 1024
+    traslape_pct: float = 20.0
+    # Umbral inicial: se guarda todo lo que supera el mínimo del modelo y este valor solo
+    # decide el conteo; se puede mover después sin reprocesar (DD-05, RF-16).
+    confianza_minima: float = 0.5
+    area_minima_m2: float = 1.5
+
+
+@dataclass(frozen=True)
+class EntradaBitacora:
+    momento: str
+    nivel: str          # "info" | "advertencia" | "error"
+    mensaje: str
+
+
+@dataclass
+class Ejecucion:
+    id: str
+    proyecto_id: str
+    ortomosaico_id: str
+    parametros: ParametrosEjecucion
+    estado: EstadoEjecucion = EstadoEjecucion.EN_COLA
+    progreso: float = 0.0              # 0 a 1
+    etapa: str = "En cola"
+    mosaico_actual: int = 0
+    mosaicos_totales: int = 0
+    creado_en: str = field(default_factory=ahora)
+    iniciado_en: str | None = None
+    finalizado_en: str | None = None
+    copas_detectadas: int | None = None   # las que pasan el umbral y el área mínima
+    copas_guardadas: int | None = None    # todas las del resultado (DD-05)
+    area_total_m2: float | None = None
+    cancelacion_solicitada: bool = False
+    bitacora: list[EntradaBitacora] = field(default_factory=list)

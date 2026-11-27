@@ -52,12 +52,23 @@ Jose Alejandro Chaves, Daniel González y Josué Solórzano. Explicaciones en es
 - La huella se guarda en el CRS de origen con su SRID (DD-04) y la envolvente en EPSG:5367 aparte para el visor.
 - Pruebas de PostGIS: `tests/test_repositorio_postgis.py`, solo con `DATABASE_URL_PRUEBAS` (base `copas_pruebas`, que se vacía).
 
+### Ejecuciones de detección (RF-06 a RF-12; DD-01, DD-02)
+- Rutas `/api/proyectos/{id}/trabajos` (el front los llama "trabajos"; en la base es la tabla `ejecucion`, migración 0002). Contrato: `TrabajoInferencia` y `ParametrosInferencia` del front.
+- La API **no procesa**: crea la fila `en_cola` y responde 202. El procesador (`servicios/procesador.py`) la toma con `FOR UPDATE SKIP LOCKED`, avanza mosaico por mosaico y renueva `latido`.
+- `PROCESADOR_INTEGRADO=1` (por defecto): el procesador corre en un hilo de la API. Con `0` se corre aparte: `python -m app.procesador` (necesita `DATABASE_URL`). Sin base de datos siempre va integrado.
+- Una ejecución activa por proyecto (índice único parcial en PostgreSQL). Con una activa no se puede borrar el proyecto ni cambiar el ortomosaico (409).
+- Cancelar: en cola se cancela al instante; ejecutando se marca `cancelacion_solicitada` y el procesador se detiene al terminar el mosaico en curso. Se borra el resultado parcial.
+- Si el procesador se cae, la ejecución queda sin latido y a los `INTERRUPCION_S` (300 s) se marca fallida ("Interrumpida").
+- `confianzaMinima` solo decide `copasDetectadas`; el GeoJSON guarda todo lo que supera `CONFIANZA_MIN` del modelo (DD-05). `areaMinimaM2` sí descarta.
+- Resultado: `datos/proyectos/<id>/ejecuciones/<id_ejecucion>.geojson` (EPSG:4326). Pendiente: pasar las copas a una tabla `copa` en el CRS de origen (DD-04).
+
 ## Próximos pasos (en orden)
 1. Obtener `best.pt` y probar la API de punta a punta con `parcela_32.tif`.
 2. Confirmar que `parcela_32.tif` es GeoTIFF; si está en EPSG:4326, reproyectar a CRTM05 (EPSG:5367) para medir áreas.
 3. Mejorar el modelo: anotar **300–500 copas o más** de varias zonas; teselas de 640–1024 px con traslape del 15–20%; aumentos para imagen aérea (`flipud=0.5`, `degrees=90`); `epochs=150`, `patience=50`; probar `yolov8s-seg.pt`.
 4. Separar entrenamiento y validación **por zonas geográficas**, no al azar, para no inflar las métricas.
-5. Ligar los trabajos a proyectos (`/api/proyectos/{id}/trabajos`) y pasar su estado a PostgreSQL. Según DD-01 y DD-02 del informe, el procesamiento corre en un servicio aparte que lee una tabla de ejecuciones (no Celery/Redis), y así es posible cancelar.
+5. Guardar las copas de cada ejecución en una tabla `copa` (CRS de origen, DD-04) con `diametroM`, `centroide`, `origen` y `eliminada`, y exponer `/api/proyectos/{id}/copas` (RF-13 a RF-22). Después, correcciones como operaciones (DD-07) y exportaciones.
+6. `/trabajos` (sin proyecto) queda solo para la consola y pruebas rápidas; retirarlo cuando el front use solo `/api`.
 
 ## Reglas para trabajar en este proyecto
 - `TESELA` e `IMGSZ` en la API deben coincidir con los usados al entrenar.

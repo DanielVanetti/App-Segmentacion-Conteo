@@ -14,7 +14,7 @@ from app.servicios.servicio_proyectos import ServicioProyectos
 PREFIJO = "/api"
 router = APIRouter(prefix=f"{PREFIJO}/proyectos", tags=["proyectos"])
 
-ERRORES = {c: {"model": RespuestaError} for c in (404, 413, 415, 422)}
+ERRORES = {c: {"model": RespuestaError} for c in (404, 409, 413, 415, 422)}
 
 
 def _url_archivo(id_proyecto: str) -> str:
@@ -24,7 +24,8 @@ def _url_archivo(id_proyecto: str) -> str:
 # --- proyectos (RF-01) ----------------------------------------------------------
 @router.get("", response_model=list[ProyectoSalida], summary="Listar proyectos")
 def listar(servicio: ServicioProyectos = Depends(obtener_proyectos)):
-    return [ProyectoSalida.desde(p) for p in servicio.listar()]
+    ultimas = servicio.ultimas_ejecuciones()
+    return [ProyectoSalida.desde(p, ultimas.get(p.id)) for p in servicio.listar()]
 
 
 @router.post("", status_code=201, response_model=ProyectoSalida,
@@ -37,10 +38,12 @@ def crear(datos: NuevoProyecto, servicio: ServicioProyectos = Depends(obtener_pr
 @router.get("/{id_proyecto}", response_model=ProyectoSalida, responses={404: ERRORES[404]},
             summary="Obtener un proyecto")
 def obtener(id_proyecto: str, servicio: ServicioProyectos = Depends(obtener_proyectos)):
-    return ProyectoSalida.desde(servicio.obtener(id_proyecto))
+    return ProyectoSalida.desde(servicio.obtener(id_proyecto),
+                                servicio.ultimas_ejecuciones().get(id_proyecto))
 
 
-@router.delete("/{id_proyecto}", status_code=204, responses={404: ERRORES[404]},
+@router.delete("/{id_proyecto}", status_code=204,
+               responses={404: ERRORES[404], 409: ERRORES[409]},
                summary="Eliminar un proyecto y sus archivos")
 def eliminar(id_proyecto: str, servicio: ServicioProyectos = Depends(obtener_proyectos)):
     servicio.eliminar(id_proyecto)

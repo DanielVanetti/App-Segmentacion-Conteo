@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import contenedor as contenedor_mod
-from app.api import rutas_proyectos, rutas_salud, rutas_trabajos
+from app.api import rutas_ejecuciones, rutas_proyectos, rutas_salud, rutas_trabajos
 from app.config import Config
 from app.contenedor import Contenedor
 from app.dominio import errores
@@ -28,6 +28,8 @@ CODIGOS_HTTP = {
     errores.TrabajoNoEncontrado: 404,
     errores.ProyectoNoEncontrado: 404,
     errores.OrtomosaicoNoEncontrado: 404,
+    errores.EjecucionNoEncontrada: 404,
+    errores.Conflicto: 409,
     errores.DatosNoValidos: 422,
     errores.TrabajoNoTerminado: 409,
     errores.ArchivoDemasiadoGrande: 413,
@@ -54,6 +56,7 @@ def crear_app(construir: Callable[[Config], Contenedor] = contenedor_mod.constru
     app.include_router(rutas_salud.router)
     app.include_router(rutas_trabajos.router)
     app.include_router(rutas_proyectos.router)
+    app.include_router(rutas_ejecuciones.router)
 
     # Todos los errores responden {"mensaje": ..., "detalle": ...} (contrato del frontend),
     # en español y sin trazas técnicas (RNF-11). El detalle técnico va a la bitácora.

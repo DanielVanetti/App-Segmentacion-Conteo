@@ -64,8 +64,13 @@ def segmentar_imagen(
     simplificar_px: float = 0.0,
     al_avanzar: Callable[[float], None] | None = None,
     gsd_objetivo: float = 0.0,
+    al_mosaico: Callable[[int, int], None] | None = None,
 ) -> list[Copa]:
-    """`tesela`, `traslape` y `simplificar_px` están en píxeles DEL MODELO (a `gsd_objetivo`)."""
+    """`tesela`, `traslape` y `simplificar_px` están en píxeles DEL MODELO (a `gsd_objetivo`).
+
+    `al_mosaico(n, total)` se llama antes de empezar (n = 0) y después de cada mosaico.
+    Si lanza una excepción (p. ej. porque se pidió cancelar), el proceso se detiene ahí.
+    """
     info = lector.info()
     f = factor_escala(info, gsd_objetivo)
     # Ventana en píxeles de la imagen original (si f = 1 es igual a `tesela`).
@@ -79,6 +84,8 @@ def segmentar_imagen(
         matriz = [a, b, d, e, c, f_]
 
     copas: list[Copa] = []
+    if al_mosaico:
+        al_mosaico(0, len(ventanas))
     for n, v in enumerate(ventanas, start=1):
         salida = None
         if f > 1:
@@ -103,4 +110,6 @@ def segmentar_imagen(
                 copas.append(Copa(poligono, det.confianza, det.clase))
         if al_avanzar:
             al_avanzar(round(n / len(ventanas), 3))
+        if al_mosaico:
+            al_mosaico(n, len(ventanas))
     return copas

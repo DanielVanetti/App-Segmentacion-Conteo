@@ -33,6 +33,12 @@ class Config:
     # Rango de resolución (m/px) en que el modelo se usa sin advertencia (RF-04).
     gsd_min: float = 0.01
     gsd_max: float = 0.075
+    # --- Ejecuciones (DD-01, DD-02)
+    # True: la API corre el procesador en un hilo. False: se corre aparte con
+    # `python -m app.procesador` (requiere DATABASE_URL, la cola vive en PostgreSQL).
+    procesador_integrado: bool = True
+    espera_cola_s: float = 2.0      # cada cuánto el procesador revisa la cola vacía
+    interrupcion_s: float = 300.0   # sin avance por más de esto = procesador caído
 
     @classmethod
     def desde_entorno(cls) -> "Config":
@@ -53,6 +59,10 @@ class Config:
             dir_datos=Path(os.getenv("DIR_DATOS", RAIZ / "datos")),
             gsd_min=float(os.getenv("GSD_MIN", 0.01)),
             gsd_max=float(os.getenv("GSD_MAX", 0.075)),
+            procesador_integrado=os.getenv("PROCESADOR_INTEGRADO", "1").strip().lower()
+            not in ("0", "false", "no"),
+            espera_cola_s=float(os.getenv("ESPERA_COLA_S", 2.0)),
+            interrupcion_s=float(os.getenv("INTERRUPCION_S", 300.0)),
         )
         if not 0 <= cfg.traslape < cfg.tesela:
             raise ValueError("TRASLAPE debe ser mayor o igual a 0 y menor que TESELA")

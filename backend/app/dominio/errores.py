@@ -43,3 +43,15 @@ class ProyectoNoEncontrado(ErrorDominio):
 
 class OrtomosaicoNoEncontrado(ErrorDominio):
     """El proyecto todavía no tiene un ortomosaico cargado (HTTP 404)."""
+
+
+class Conflicto(ErrorDominio):
+    """La operación choca con el estado actual: sin ortomosaico, ejecución en curso... (409)."""
+
+
+class EjecucionNoEncontrada(ErrorDominio):
+    """No existe esa ejecución en el proyecto (HTTP 404)."""
+
+
+class EjecucionCancelada(Exception):
+    """Interna del procesador: se pidió cancelar y se detiene entre mosaicos. No llega a HTTP."""

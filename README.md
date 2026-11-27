@@ -52,9 +52,26 @@ Copy-Item .env.example .env
 | POST | `/api/proyectos/{id}/ortomosaico` (multipart, campo `archivo`) | RF-02 a RF-04 |
 | GET | `/api/proyectos/{id}/ortomosaico` | RF-02 |
 | GET | `/api/proyectos/{id}/ortomosaico/archivo` (admite `Range`) | DD-03 |
+| GET / POST | `/api/proyectos/{id}/trabajos` (lanzar detección: responde 202 y queda en cola) | RF-06 a RF-11 |
+| GET | `/api/proyectos/{id}/trabajos/{idTrabajo}` (avance, mosaico actual, bitácora) | RF-10 |
+| POST | `/api/proyectos/{id}/trabajos/{idTrabajo}/cancelacion` | RF-12 |
+| GET | `/api/proyectos/{id}/trabajos/{idTrabajo}/resultado` (GeoJSON) | RF-13 |
 
 Los errores responden `{"mensaje": "...", "detalle": ...}` en español (RNF-11).
-`/trabajos` (procesamiento con YOLO) sigue funcionando igual; todavía no está ligado a proyectos.
+
+**Procesamiento.** Por defecto la API corre el procesador en un hilo. Para tenerlo aparte
+(DD-01: si se cae o se reinicia, la API sigue respondiendo), en dos terminales:
+
+```powershell
+$env:PROCESADOR_INTEGRADO = "0"; .\.venv\Scripts\python.exe -m uvicorn app.main:app --env-file .env
+```
+
+```powershell
+.\.venv\Scripts\python.exe -m app.procesador
+```
+
+La cola es la tabla `ejecucion` de PostgreSQL (DD-02). `/trabajos` (sin proyecto) se mantiene
+solo para la consola y pruebas rápidas.
 
 Frontend (desde `frontend/`):
 
@@ -65,5 +82,5 @@ npm run dev
 
 Con `VITE_USE_MOCKS=true` en `frontend/.env` la interfaz usa la API simulada (MSW).
 Con `VITE_USE_MOCKS=false`, Vite reenvía `/api` al backend en `http://127.0.0.1:8000`
-(se cambia con `VITE_PROXY_API`). Por ahora solo proyectos y ortomosaico existen en el
-backend real; el resto de pantallas necesita MSW.
+(se cambia con `VITE_PROXY_API`). En el backend real ya existen proyectos, ortomosaico y
+trabajos de detección; copas, correcciones y exportaciones todavía necesitan MSW.

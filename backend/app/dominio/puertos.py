@@ -10,8 +10,8 @@ from typing import Callable, Protocol
 
 import numpy as np
 
-from app.dominio.modelos import (Copa, Deteccion, InfoImagen, MetadatosRaster, Ortomosaico,
-                                 Proyecto, Resumen, Trabajo)
+from app.dominio.modelos import (Copa, Deteccion, Ejecucion, EstadoEjecucion, InfoImagen,
+                                 MetadatosRaster, Ortomosaico, Proyecto, Resumen, Trabajo)
 
 
 class LectorImagen(Protocol):
@@ -119,3 +119,66 @@ class ArchivosProyecto(Protocol):
     def descartar(self, temporal: Path) -> None: ...
 
     def eliminar_proyecto(self, id_proyecto: str) -> None: ...
+
+    def ruta_resultado(self, id_proyecto: str, id_ejecucion: str) -> Path:
+        """Dónde se escribe el GeoJSON de una ejecución (crea la carpeta)."""
+        ...
+
+
+class RepositorioEjecuciones(Protocol):
+    """Cola y estado de las ejecuciones (DD-02: la cola es esta misma tabla).
+
+    La API solo crea, consulta y pide cancelar. El procesador (otro proceso, DD-01) toma
+    la siguiente en cola, informa el avance y la cierra. Un proyecto tiene como máximo
+    una ejecución activa (en cola o ejecutando)."""
+
+    def crear(self, ejecucion: Ejecucion) -> None:
+        """Lanza Conflicto si el proyecto ya tiene una ejecución activa."""
+        ...
+
+    def obtener(self, id_ejecucion: str) -> Ejecucion | None: ...
+
+    def listar(self, id_proyecto: str) -> list[Ejecucion]:
+        """De la más reciente a la más antigua."""
+        ...
+
+    def activa(self, id_proyecto: str) -> Ejecucion | None: ...
+
+    def ultimas(self) -> dict[str, Ejecucion]:
+        """La ejecución más reciente de cada proyecto (para el estado del proyecto)."""
+        ...
+
+    def eliminar_proyecto(self, id_proyecto: str) -> None:
+        """Borra las ejecuciones del proyecto (en PostGIS ya lo hace el ON DELETE CASCADE)."""
+        ...
+
+    def solicitar_cancelacion(self, id_ejecucion: str) -> Ejecucion | None:
+        """En cola: queda cancelada al instante. Ejecutando: se marca y el procesador
+        se detiene en el siguiente mosaico. Terminada: no cambia."""
+        ...
+
+    # --- lo usa el procesador ---
+    def tomar_siguiente(self) -> Ejecucion | None:
+        """Pasa la más antigua en cola a 'ejecutando' y la devuelve. Dos procesadores
+        nunca toman la misma."""
+        ...
+
+    def avanzar(self, id_ejecucion: str, progreso: float, etapa: str,
+                mosaico_actual: int | None = None,
+                mosaicos_totales: int | None = None) -> bool:
+        """Guarda el avance y renueva el latido. Devuelve False si hay que detenerse
+        (cancelación pedida o la ejecución ya no existe)."""
+        ...
+
+    def anotar(self, id_ejecucion: str, nivel: str, mensaje: str) -> None:
+        """Agrega una línea a la bitácora."""
+        ...
+
+    def terminar(self, id_ejecucion: str, estado: EstadoEjecucion, etapa: str,
+                 copas_detectadas: int | None = None, copas_guardadas: int | None = None,
+                 area_total_m2: float | None = None) -> None: ...
+
+    def recuperar_interrumpidas(self, segundos_sin_latido: float) -> list[str]:
+        """Marca como fallidas las que quedaron 'ejecutando' sin latido (el procesador
+        se cayó). Devuelve sus ids."""
+        ...

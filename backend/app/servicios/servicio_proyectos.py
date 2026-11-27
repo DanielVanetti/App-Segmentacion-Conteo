@@ -8,8 +8,9 @@ from datetime import date
 from pathlib import Path
 
 from app.dominio import errores
-from app.dominio.modelos import Ortomosaico, Proyecto
-from app.dominio.puertos import ArchivoSubido, ArchivosProyecto, InspectorRaster, RepositorioProyectos
+from app.dominio.modelos import Ejecucion, Ortomosaico, Proyecto
+from app.dominio.puertos import (ArchivoSubido, ArchivosProyecto, InspectorRaster,
+                                 RepositorioEjecuciones, RepositorioProyectos)
 from app.servicios.validacion_ortomosaico import RangoResolucion, es_invalida, validar
 
 EXTENSIONES_ORTOMOSAICO = {".tif", ".tiff"}
@@ -19,8 +20,10 @@ LARGO_MAX_TEXTO = 200
 
 class ServicioProyectos:
     def __init__(self, repositorio: RepositorioProyectos, archivos: ArchivosProyecto,
-                 inspeccionar: InspectorRaster, rango: RangoResolucion, max_bytes: int):
+                 inspeccionar: InspectorRaster, rango: RangoResolucion, max_bytes: int,
+                 ejecuciones: RepositorioEjecuciones | None = None):
         self.repositorio = repositorio
+        self.ejecuciones = ejecuciones
         self.archivos = archivos
         self.inspeccionar = inspeccionar
         self.rango = rango
@@ -56,9 +59,22 @@ class ServicioProyectos:
             raise errores.ProyectoNoEncontrado("El proyecto solicitado no existe.")
         return proyecto
 
+    def ultimas_ejecuciones(self) -> dict[str, Ejecucion]:
+        """La ejecución más reciente de cada proyecto, para mostrar su estado."""
+        return self.ejecuciones.ultimas() if self.ejecuciones else {}
+
+    def _sin_ejecucion_activa(self, id_proyecto: str, accion: str) -> None:
+        if self.ejecuciones and self.ejecuciones.activa(id_proyecto):
+            raise errores.Conflicto(f"No se puede {accion} mientras hay una detección en "
+                                    "curso. Espere a que termine o cancélela.")
+
     def eliminar(self, id_proyecto: str) -> None:
+        self.obtener(id_proyecto)
+        self._sin_ejecucion_activa(id_proyecto, "eliminar el proyecto")
         if not self.repositorio.eliminar(id_proyecto):
             raise errores.ProyectoNoEncontrado("El proyecto solicitado no existe.")
+        if self.ejecuciones:
+            self.ejecuciones.eliminar_proyecto(id_proyecto)
         self.archivos.eliminar_proyecto(id_proyecto)
 
     # --- ortomosaico -----------------------------------------------------------
@@ -67,6 +83,7 @@ class ServicioProyectos:
         """Guarda el archivo, lo valida y, si sirve, lo asocia al proyecto (reemplaza al
         anterior). Si es inválido se borra y se lanza ImagenInvalida con el motivo."""
         self.obtener(id_proyecto)   # 404 antes de recibir gigas
+        self._sin_ejecucion_activa(id_proyecto, "cambiar el ortomosaico")
         extension = Path(nombre_archivo or "").suffix.lower()
         if extension in EXTENSIONES_PREVISTAS:
             raise errores.FormatoNoDisponible(

@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from app.dominio.modelos import Extension, Ortomosaico, Proyecto
+from app.dominio.modelos import Ejecucion, EstadoEjecucion, Extension, Ortomosaico, Proyecto
 
 
 class _Camel(BaseModel):
@@ -39,18 +39,23 @@ class ProyectoSalida(_Camel):
     actualizado_en: str
     estado: EstadoProyecto
     ortomosaico_id: str | None
-    total_copas: int | None = None      # llega con las ejecuciones (RF-13)
+    total_copas: int | None = None      # de la última detección completada
     url_miniatura: str | None = None
 
     @classmethod
-    def desde(cls, p: Proyecto) -> "ProyectoSalida":
-        # Por ahora el estado depende solo de si hay ortomosaico; "procesando" y
-        # "completado" llegan con las ejecuciones.
-        estado = "ortomosaico_cargado" if p.ortomosaico_id else "sin_ortomosaico"
+    def desde(cls, p: Proyecto, ultima: Ejecucion | None = None) -> "ProyectoSalida":
+        """El estado sale del ortomosaico y de la última ejecución. Una detección hecha
+        sobre un ortomosaico anterior ya no cuenta como resultado del proyecto."""
+        estado, total = ("ortomosaico_cargado" if p.ortomosaico_id else "sin_ortomosaico"), None
+        if ultima and ultima.estado.activa:
+            estado = "procesando"
+        elif (ultima and ultima.estado == EstadoEjecucion.COMPLETADO
+              and ultima.ortomosaico_id == p.ortomosaico_id):
+            estado, total = "completado", ultima.copas_detectadas
         return cls(id=p.id, nombre=p.nombre, descripcion=p.descripcion, sitio=p.sitio,
                    fecha_vuelo=p.fecha_vuelo, creado_en=p.creado_en,
                    actualizado_en=p.actualizado_en, estado=estado,
-                   ortomosaico_id=p.ortomosaico_id)
+                   ortomosaico_id=p.ortomosaico_id, total_copas=total)
 
 
 class ExtensionSalida(_Camel):
